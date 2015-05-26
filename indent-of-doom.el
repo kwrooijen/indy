@@ -1,336 +1,264 @@
-;;; indent-of-doom.el ---
-;;
-;; Filename: indent-of-doom.el
-;; Description: A customizable general purpose indenting mode
-;; Author: Kevin van Rooijen
-;; Maintainer: Kevin van Rooijen
-;; Created: May 25 2014
-;; Version: 0.1.0
-;; Package-Requires: ((dash "2.6.0"))
-;; URL:
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;;; Commentary:
-;; The DSL can be used as follows:
-;; First you have a target; prev, next or current.
-;; Next you choose a situation; ends-on, starts-with, indent, indent-char and
-;; indent-char-is.
-;; Lastly you can add an comparison, which is a string (however indent takes an
-;; int and indent-char doesn't take anything)
-;; Example: ---------------------------------------------------------------------
-;; (prev 'starts-with ";; Ex")
-;; Executing the previous line (C-x C-e) will return t. Because the line before
-;; that starts with the given string.
-;; (next 'ends-on "!!!")
-;; Executing the previous line will also return t !!!
-    ;;; (current 'indent)
-        ;;; Executing the previous line will return 4 because it has an indentation of 4 spaces.
-    ;;; (prev 'indent 2)
-;; And lastly executing the previous line will result in 8 + (* tab-width 2).
-;;
-;; You can add custom rules for your indentation.
-;; Example: ---------------------------------------------------------------------
-;;(setq my-doom '(
-;;    (all . (
-;;        ((current 'starts-with "]" "}") (prev 'indent -1))
-;;        ((prev 'ends-on "[" "{")        (prev 'indent 1))
-;;        ((prev 'ends-on ",")            (prev 'indent))
-;;    ))
-;;))
-;;
-;; Saving the my-doom varaible will add these rules to all major-modes which
-;; have indent-of-doom-mode active. It reads as follows from up to down:
-;;
-;; Line 36:
-;; If the current line starts with the characters "]" or "}" then
-;; the current line should have the same indentation as the
-;; previous line MINUS 1 tab-width.
-;;
-;; Line 37:
-;; If the previous line ends with the characters "[" or "{" then
-;; the current line should have the same indentation as the
-;; previous line PLUS 1 tab-width.
-;;
-;; Line 38:
-;; If the previous line ends with the character "," then
-;; the current line should have the same indentation as the
-;; previous line.
-;;
-;; These rules will indent these lines in the following matter automatically:
-;;
-;; myVariableList = [
-;;     valueOne,
-;;     valueTwo,
-;;     valueThree
-;; ]
-;;
-;; Whereas in certain modes this will be indented like this:
-;;
-;; myVariableList = [
-;;                   valueOne,
-;;                   valueTwo,
-;;                   valueThree
-;;                  ]
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;; This program is free software; you can redistribute it and/or
-;; modify it under the terms of the GNU General Public License as
-;; published by the Free Software Foundation; either version 3, or
+;;; indent-of-doom.el --- A minor mode and EDSL to manage your mode's indentation rules.  -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2015  Kevin W. van Rooijen
+
+;; Author: Kevin W. van Rooijen <kevin.van.rooijen@attichacker.com>
+;; Keywords: convenience, matching, tools
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
-;;
+
 ;; This program is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License for more details.
-;;
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
 ;; You should have received a copy of the GNU General Public License
-;; along with this program; see the file COPYING.  If not, write to
-;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
-;; Floor, Boston, MA 02110-1301, USA.
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+;;; Commentary:
+;; A library which let's you set your custom indentation rules using a small EDSL.
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Functions:
+;;
+;; * indent-of-doom
+;;
+;; EDSL Functions:
+;; * iod/next-tab
+;; * iod/current-tab
+;; * iod/prev-char
+;; * iod/next-char
+;; * iod/current-char
+;; * iod/prev
+;; * iod/next
+;; * iod/current
+;; * iod/ends-on
+;; * iod/starts-with
+;; * iod/contains
 ;;
 ;;; Code:
 
-;;;;;;;;;;;;;;;;;;;;;; Config ;;;;;;;;;;;;;;;;;;;;;
+
 
 (defgroup indent-of-doom ()
   "Customize group for indent-of-doom.el"
   :prefix "indent-of-doom-"
   :group 'indent)
 
-(defcustom doom-use-tab-cycle nil
-    "Use tab of doom to cycle through 3
+(defcustom iod--use-tab-cycle t
+  "Use tab of doom to cycle through 3
     indentations depending on previous line."
-    :type 'boolean
-    :group 'indent-of-doom)
+  :type 'boolean
+  :group 'indent-of-doom)
 
-(defcustom doom-tab-cycle-zero nil
-    "When cycling through the 3 indentation you
+(defcustom iod--skip-empty-lines nil
+  "If you're comparing to 'previous line' it must contain characters."
+  :type 'boolean
+  :group 'indent-of-doom)
+
+(defcustom iod--cycle-zero nil
+  "When cycling through the 3 indentation you
     also cycle to the beginning of the line."
-    :type 'boolean
-    :group 'indent-of-doom)
+  :type 'boolean
+  :group 'indent-of-doom)
 
-(defcustom doom-region t
-    "Use indentation of doom while region is active."
-    :type 'boolean
-    :group 'indent-of-doom)
+(defcustom iod--indent-key "TAB"
+  "The key to run tab-of-doom."
+  :type '(string)
+  :group 'indent-of-doom)
 
-(defcustom doom-region-cycle nil
-    "Use the 3 indentation cycle while region is active.
-    Turning this off won't affect your custom indentation settings."
-    :type 'boolean
-    :group 'indent-of-doom)
+(defvar iod--rules '())
 
-(defcustom doom-indent-fallback t
-    "When no indentation rules are found, fallback to the original tab."
-    :type 'boolean
-    :group 'indent-of-doom)
+;;;###autoload
+(defun indent-of-doom ()
+  "Indent current line using Indent of doom.
+This will indent the current line according to your doom rules."
+  (interactive)
+  (let ((rule (iod--get-rule)))
+    (if rule (eval rule) (iod--fallback))))
 
-(defcustom doom-indent-region-fallback t
-    "When no indentation rules are found while region is active,
-    fallback to the original tab."
-    :type 'boolean
-    :group 'indent-of-doom)
+;;;###autoload
+(defun iod--fallback ()
+  "If no rules are applicable then use the fallback function.
+If iod--use-tab-cycle is non nil use the 3 indentation cycling.
+If iod--use-tab-cycle is nil then use indent-for-tab-command."
+  (if iod--use-tab-cycle
+      (iod--cycle)
+    (indent-for-tab-command)))
 
-(defcustom doom-indent-key "TAB"
-    "The key to run tab-of-doom."
-    :type '(string)
-    :group 'indent-of-doom)
+;;;###autoload
+(defun iod--indent (num)
+  "Indent the current line by the amount of provided in num."
+  (unless (equal (iod--current-indent) num)
+    (let ((ccn (+ (current-column) (- num (iod--current-indent)))))
+      (beginning-of-line)
+      (just-one-space 0)
+      (insert (make-string num ?\s))
+      (move-to-column ccn))))
 
-;;;;;;;;;;;;;;;;;;;;;; Utils ;;;;;;;;;;;;;;;;;;;;;;
+;;;###autoload
+(defun iod--cycle ()
+  "Cycle through 3 indentations depending on the previous line."
+  (let* ((c (iod--current-indent))
+         (p (iod--prev-indent))
+         (w (cond
+             ((< c (- p tab-width)) (- p tab-width))
+             ((< c p) p)
+             ((equal c p) (+ p tab-width))
+             ((equal c p) (+ p tab-width))
+             (t  (if iod--cycle-zero 0 (- p tab-width))))))
+    (iod--indent (if (< w 0) 0 w ))))
 
-(defun what-line-int ()
-    "Get the current line number as an int"
-    (interactive)
-    (save-restriction
-        (widen)
-        (save-excursion
-            (beginning-of-line)
-            (1+ (count-lines 1 (point))))))
+;;;###autoload
+(defun iod--prev-indent ()
+  "Get the amount of indentation spaces if the previous line."
+  (save-excursion
+    (previous-line 1)
+    (while (and (iod--line-empty?) iod--skip-empty-lines)
+      (previous-line 1))
+    (back-to-indentation)
+    (current-column)))
 
-(defun dash-string (d s)
-    "Execute dash expression with a string. Converts string to a
-    list, applies the dash function and wraps it back to a string again"
-    (let ((result (funcall d (-drop 1 (split-string s "")))))
-        (if result (list-to-string result) "")))
+;;;###autoload
+(defun iod--next-indent ()
+  "Get the amount of indentation spaces if the next line."
+  (save-excursion
+    (next-line 1)
+    (while (and (iod--line-empty?) iod--skip-empty-lines)
+      (next-line 1))
+    (back-to-indentation)
+    (current-column)))
 
-(defun get-indent (value)
-    "Gets the amount of spaces at the start of a string"
-    (length (dash-string (lambda(x) (--take-while (or (equal it " ") (equal it "")) x)) value)))
+;;;###autoload
+(defun iod--current-indent ()
+  "Get the amount of indentation spaces if the current line."
+  (save-excursion
+    (back-to-indentation)
+    (current-column)))
 
-(defun trim-starting-whitespace (value)
-    "Removes all whitespace from the start of a string"
-    (dash-string (lambda(x) (--drop-while (or (equal it "") (equal it " ")) x)) value))
+;;;###autoload
+(defun iod--get-next-line ()
+  "Get the next line as a string."
+  (save-excursion
+    (next-line 1)
+    (while (and (iod--line-empty?) iod--skip-empty-lines)
+      (next-line 1))
+    (iod--get-current-line)))
 
-(defun point-is (p &rest xs)
-    "Check if the given point is one of multiple characters"
-    (--any? (equal t it) (-map (lambda(x) (equal (char-at-point p) x)) xs)))
+;;;###autoload
+(defun iod--get-prev-line ()
+  "Get the previous line as a string."
+  (save-excursion
+    (previous-line 1)
+    (while (and (iod--line-empty?) iod--skip-empty-lines)
+      (previous-line 1))
+    (iod--get-current-line)))
 
-(defun char-at-point (p)
-    "Gets the character at the given point"
-    (string (char-after p)))
+;;;###autoload
+(defun iod--get-current-line ()
+  "Get the current line as a string."
+  (buffer-substring-no-properties (point-at-bol) (point-at-eol)))
 
-(defun list-to-string (xs)
-    "Converts a list to a string"
-    (--reduce (format "%s%s" acc it) xs))
+;;;###autoload
+(defun iod--line-empty? ()
+  "Check if the current line is empty."
+  (string-match "^\s*$" (iod--get-current-line)))
 
-(defun get-current-line ()
-    "Get the current line as a string"
-    (buffer-substring-no-properties (point-at-bol) (point-at-eol)))
-
-(defun get-prev-line (&optional recursive)
-    "Get the previous line as a string"
-    (let ((r (- (point-at-bol) 2)) (result ""))
-        (if (<= r 0) "***beginning-of-buffer***" (progn
-            (if recursive (while (and (> r 0) (point-is r "\n" " ") ) (setq r (- r 1))))
-            (while (and (> r 0) (not (equal (char-at-point r) "\n")))
-                (setq result (concat (char-at-point r) result))
-                (setq r (- r 1)))
-            result))))
-
-(defun recur (p &optional r)
-    "A helper function to recursively look for the next valid string"
-    (if r (while (point-is p "\n") (setq p (+ p 1)))) p
-    (let ((is-line p))
-        (if r (while (point-is is-line " ") (setq is-line (+ is-line 1))))
-        (if (point-is is-line "\n") (recur is-line r) p)))
-
-(defun get-next-line (&optional recursive)
-    "Get the next line as a string"
-    (let ((p (+ (point-at-eol) 1)) (result ""))
-        (setq p (recur p recursive))
-          (while (not (equal (char-at-point p) "\n"))
-            (setq result (concat result (char-at-point p)))
-        (setq p (+ p 1))) p
-        result))
-
-(defun take-to-column (col)
-    "Move line to column number and adjust cursor position accordingly"
-    (let (
-        (old-column (current-column))
-        (old-indent (current 'indent))
-    )
-    (unless (equal col old-column)
-        (beginning-of-line)
-        (just-one-space 0)
-        (-dotimes col (lambda (n) (insert " ")))
-        (let ((new-pos (+ old-column (- (current 'indent) old-indent))))
-            (if (>= new-pos 0) (move-to-column new-pos) (move-to-column 0))))))
-
-(defun doom-mode-rules ()
-    "Get the indent rules of the current major mode as well as the default 'all' rules"
-    (let ((result (cdr (assoc (with-current-buffer (buffer-name) major-mode) my-doom)))
-         (all (cdr (assoc 'all my-doom))))
+;;;###autoload
+(defun iod--rules ()
+  "Check if the current line is empty."
+  ;; i-have-no-idea-what-im-doing.jpg
+  "Get the indent rules of the current major mode as well as the default 'all' rules"
+  (let ((result (cdr (assoc (with-current-buffer (buffer-name) major-mode) iod--rules)))
+        (all (cdr (assoc 'all iod--rules))))
     (append (if result result '()) all)))
 
-(defun calc-tab (&optional region-true)
-    "Check which ident rule is true and evaluate the requested tab number.
-    Custom indent rules can be added inside the my-doom variable"
-    (eval (car (last (car (--drop-while (not (eval (car it)))
-        (append (doom-mode-rules) (IoD-standard region-true))))))))
+;;;###autoload
+(defun iod--get-rule ()
+  "Get the defined rules of the current major mode and the 'all' rules."
+  (let* ((filter-list (remove-if-not (lambda(x) (eval (car x))) (iod--rules))))
+    (car (last (car filter-list)))))
 
-;;;;;;;;;;;;;;;;;;;;;;; DSL ;;;;;;;;;;;;;;;;;;;;;;;
+;;;###autoload
+(defun iod--escape-regexp (reg)
+  "Escape regexp."
+  (replace-regexp-in-string "\\[" "\\\\[" reg))
 
-(defun prev (function &rest values)
-    "Previous line as a target"
-    (funcall function (get-prev-line t) values))
+;; EDSL
 
-(defun next (function &rest values)
-    "Next line as a target"
-    (funcall function (get-next-line t) values))
+;;;###autoload
+(defun iod/prev-tab (&optional num)
+  "Indent the current line by previous line indentation + tab-with * num."
+  (iod--indent (+ (iod--prev-indent) (* (if num num 0) tab-width))))
 
-(defun current (function &rest values)
-    "Current line as a target"
-    (funcall function (get-current-line) values))
+;;;###autoload
+(defun iod/next-tab (&optional num)
+  "Indent the current line by next line indentation + tab-with * num."
+  (iod--indent (+ (iod--next-indent) (* (if num num 0) tab-width))))
 
-(defun ends-on (value xs)
-    "Check if the line ends on one of the following strings"
-    (--any? (equal (if (>= (length value) (length it))
-        (substring value (* (length it) -1) nil) nil)
-            it) xs))
+;;;###autoload
+(defun iod/current-tab (&optional num)
+  "Indent the current by num."
+  (iod--indent (if num num 0)))
 
-(defun starts-with (value xs)
-    "Check if the line starts with one of the following strings"
-    (let ((new-value (trim-starting-whitespace value)))
-    (--any? (equal (if (>= (length new-value) (length it))
-        (substring new-value 0 (length it)) nil)
-        it) xs)))
+;;;###autoload
+(defun iod/prev-char (&optional num)
+  "Indent the current line by previous line indentation + num."
+  (iod--indent (+ (iod--prev-indent) (if num num 0))))
 
-(defun indent (value tab)
-    "Get the indentation of a line in spaces"
-    (let ((result (get-indent value)))
-        (if tab (+ (* tab-width (car tab)) result) result)))
+;;;###autoload
+(defun iod/next-char (&optional num)
+  "Indent the current line by next line indentation + num."
+  (iod--indent (+ (iod--next-indent) (if num num 0))))
 
-(defun indent-char (value _)
-    "Get the indentation character of a line"
-    (substring (trim-starting-whitespace value) 0 1))
+;;;###autoload
+(defun iod/current-char (&optional num)
+  "Indent the current line by num."
+  (iod--indent (if num num 0)))
 
-(defun indent-char-is (value xs)
-    "Check if the indentation character of a line
-    is equal to one of the given characters"
-    (equal (substring (trim-starting-whitespace value) 0 1) (car xs)))
+;;;###autoload
+(defun iod/prev (function &rest values)
+  "Apply a line check on the previous line using the EDSL functions."
+  "Previous line as a target"
+  (funcall function (iod--get-prev-line) values))
 
-;;;;;;;;;;;;;;;;;; End Functions ;;;;;;;;;;;;;;;;;;
+;;;###autoload
+(defun iod/next (function &rest values)
+  "Apply a line check on the next line using the EDSL functions."
+  (funcall function (iod--get-next-line) values))
 
-(defun indent-of-doom ()
-    "Indent of Doom initial function"
-    (interactive)
-    (if mark-active
-        (if doom-region (indent-of-doom-region)
-        (indent-for-tab-command)))
-    (unless mark-active (indent-of-doom-line)))
+;;;###autoload
+(defun iod/current (function &rest values)
+  "Apply a line check on the current line using the EDSL functions."
+  (funcall function (iod--get-current-line) values))
 
-(defun indent-of-doom-region ()
-    "Indent of Doom for region selection"
-    (let ((old-line   (what-line-int))
-          (old-col    (current-column))
-          (begin      (region-beginning))
-          (end        (region-end))
-          (end-line   0))
-    (goto-char end)
-    (setq end-line (what-line-int))
-    (goto-char begin)
-    (set-mark nil)
-    (unless (equal (what-line-int) end-line) (indent-of-doom-line t))
-    (while (/= (what-line-int) end-line )
-        (call-interactively 'next-line)
-        (indent-of-doom-line t))
-    (let ((current-prefix-arg old-line))
-        (call-interactively 'goto-line))
-    (move-to-column old-col)
-    (if (> (point) begin) (set-mark begin) (set-mark end))))
+;;;###autoload
+(defun iod/ends-on (line compare)
+  "Check if the line ends on one of the following strings"
+  (remove-if-not (lambda (x)
+                   (string-match (concat (escape-regexp x) "\s*$") line)) compare))
 
-(defun indent-of-doom-line (&optional region-true)
-    "Indent of Doom for current line"
-    (if (calc-tab region-true) (take-to-column (calc-tab region-true))
-        (if (or doom-indent-fallback
-            (if region-true doom-indent-region-fallback))
-        (indent-for-tab-command))))
+;;;###autoload
+(defun iod/starts-with (line compare)
+  "Check if the line starts with one of the following strings"
+  (remove-if-not (lambda (x)
+                   (string-match (concat "^\s*" (escape-regexp x) ) line)) compare))
 
-;;;;;;;;;;;;;;;;; Default Config ;;;;;;;;;;;;;;;;;;
-
-(defun IoD-standard (&optional region-true)
-    "These are the standard tabbing rules. If the variable
-    doom-use-tab-cycle is not nil they will be automatically used."
-    (if (and doom-use-tab-cycle (if region-true doom-region-cycle t)) '(
-        ((< (current 'indent) (prev 'indent -1)) (prev 'indent -1) )
-        ((and (>= (current 'indent) (prev 'indent -1)) (< (current 'indent) (prev 'indent))) (prev 'indent))
-        ((and (>= (current 'indent) (prev 'indent)) (< (current 'indent) (prev 'indent 1))) (prev 'indent 1))
-    (t (if doom-tab-cycle-zero 0 (prev 'indent -1)))) '() ))
+;;;###autoload
+(defun iod/contains (line compare)
+  "Check if the line contains any of the following strings (regexp)"
+  (remove-if-not (lambda (x) (string-match x line)) compare))
 
 (defvar indent-of-doom-mode-map (make-keymap) "indent-of-doom-mode keymap.")
 
 (define-minor-mode indent-of-doom-mode
-    "One indentation mode to rule them all"
-    nil " ToD" 'indent-of-doom-mode-map)
+  "One indentation mode to rule them all."
+  nil " IoD" 'indent-of-doom-mode-map)
 
-(define-key indent-of-doom-mode-map (kbd doom-indent-key) 'indent-of-doom)
-
-(setq my-doom '())
+(define-key indent-of-doom-mode-map (kbd iod--indent-key) 'indent-of-doom)
 
 (provide 'indent-of-doom)
-
 ;;; indent-of-doom.el ends here
+

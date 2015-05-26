@@ -1,4 +1,4 @@
-;;; indent-of-doom.el --- A minor mode and EDSL to manage your mode's indentation rules.  -*- lexical-binding: t; -*-
+;;; indent-of-doom.el --- A minor mode and EDSL to manage your mode's indentation rules.
 
 ;; Copyright (C) 2015  Kevin W. van Rooijen
 

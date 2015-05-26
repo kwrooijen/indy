@@ -73,7 +73,7 @@
 This will indent the current line according to your doom rules."
   (interactive)
   (let ((rule (iod--get-rule)))
-    (if rule (eval rule) (iod--fallback))))
+    (if (and (not (region-active-p)) rule (eval rule)) (iod--fallback))))
 
 ;;;###autoload
 (defun iod--fallback ()
@@ -239,14 +239,14 @@ Optional argument VALUES Values to compare with."
   "Check if LINE ends on one of the following strings.
 Argument VALUES Values to compare with."
   (remove-if-not (lambda (x)
-                   (string-match (concat (escape-regexp x) "\s*$") line)) values))
+                   (string-match (concat (iod--escape-regexp x) "\s*$") line)) values))
 
 ;;;###autoload
 (defun iod/starts-with (line values)
   "Check if LINE start with one of the following strings.
 Argument VALUES Values to compare with."
   (remove-if-not (lambda (x)
-                   (string-match (concat "^\s*" (escape-regexp x) ) line)) values))
+                   (string-match (concat "^\s*" (iod--escape-regexp x) ) line)) values))
 
 ;;;###autoload
 (defun iod/contains (line values)
@@ -264,4 +264,3 @@ Argument VALUES Values to compare with."
 
 (provide 'indent-of-doom)
 ;;; indent-of-doom.el ends here
-

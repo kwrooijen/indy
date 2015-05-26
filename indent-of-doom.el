@@ -40,16 +40,13 @@
 ;;
 ;;; Code:
 
-
-
 (defgroup indent-of-doom ()
   "Customize group for indent-of-doom.el"
   :prefix "indent-of-doom-"
   :group 'indent)
 
 (defcustom iod--use-tab-cycle t
-  "Use tab of doom to cycle through 3
-    indentations depending on previous line."
+  "Use tab of doom to cycle through 3 indentations depending on previous line."
   :type 'boolean
   :group 'indent-of-doom)
 
@@ -59,8 +56,7 @@
   :group 'indent-of-doom)
 
 (defcustom iod--cycle-zero nil
-  "When cycling through the 3 indentation you
-    also cycle to the beginning of the line."
+  "When cycling through the 3 indentation you also cycle to the beginning of the line."
   :type 'boolean
   :group 'indent-of-doom)
 
@@ -82,15 +78,15 @@ This will indent the current line according to your doom rules."
 ;;;###autoload
 (defun iod--fallback ()
   "If no rules are applicable then use the fallback function.
-If iod--use-tab-cycle is non nil use the 3 indentation cycling.
-If iod--use-tab-cycle is nil then use indent-for-tab-command."
+If 'iod--use-tab-cycle' is non nil use the 3 indentation cycling.
+If 'iod--use-tab-cycle' is nil then use 'indent-for-tab-command.'"
   (if iod--use-tab-cycle
       (iod--cycle)
     (indent-for-tab-command)))
 
 ;;;###autoload
 (defun iod--indent (num)
-  "Indent the current line by the amount of provided in num."
+  "Indent the current line by the amount of provided in NUM."
   (unless (equal (iod--current-indent) num)
     (let ((ccn (+ (current-column) (- num (iod--current-indent)))))
       (beginning-of-line)
@@ -183,75 +179,82 @@ If iod--use-tab-cycle is nil then use indent-for-tab-command."
 
 ;;;###autoload
 (defun iod--escape-regexp (reg)
-  "Escape regexp."
+  "Escape regexp.
+Argument REG regular expression to escape."
   (replace-regexp-in-string "\\[" "\\\\[" reg))
 
 ;; EDSL
 
 ;;;###autoload
 (defun iod/prev-tab (&optional num)
-  "Indent the current line by previous line indentation + tab-with * num."
+  "Indent the current line by previous line indentation + tab-with * NUM."
   (iod--indent (+ (iod--prev-indent) (* (if num num 0) tab-width))))
 
 ;;;###autoload
 (defun iod/next-tab (&optional num)
-  "Indent the current line by next line indentation + tab-with * num."
+  "Indent the current line by next line indentation + tab-with * NUM."
   (iod--indent (+ (iod--next-indent) (* (if num num 0) tab-width))))
 
 ;;;###autoload
 (defun iod/current-tab (&optional num)
-  "Indent the current by num."
+  "Indent the current by NUM."
   (iod--indent (if num num 0)))
 
 ;;;###autoload
 (defun iod/prev-char (&optional num)
-  "Indent the current line by previous line indentation + num."
+  "Indent the current line by previous line indentation + NUM."
   (iod--indent (+ (iod--prev-indent) (if num num 0))))
 
 ;;;###autoload
 (defun iod/next-char (&optional num)
-  "Indent the current line by next line indentation + num."
+  "Indent the current line by next line indentation + NUM."
   (iod--indent (+ (iod--next-indent) (if num num 0))))
 
 ;;;###autoload
 (defun iod/current-char (&optional num)
-  "Indent the current line by num."
+  "Indent the current line by NUM."
   (iod--indent (if num num 0)))
 
 ;;;###autoload
 (defun iod/prev (function &rest values)
-  "Apply a line check on the previous line using the EDSL functions."
+  "Apply a line check on the previous line using the EDSL FUNCTIONs.
+Optional argument VALUES Values to compare with."
   "Previous line as a target"
   (funcall function (iod--get-prev-line) values))
 
 ;;;###autoload
 (defun iod/next (function &rest values)
-  "Apply a line check on the next line using the EDSL functions."
+  "Apply a line check on the next line using the EDSL FUNCTIONs.
+Optional argument VALUES Values to compare with."
   (funcall function (iod--get-next-line) values))
 
 ;;;###autoload
 (defun iod/current (function &rest values)
-  "Apply a line check on the current line using the EDSL functions."
+  "Apply a line check on the current line using the EDSL FUNCTIONs.
+Optional argument VALUES Values to compare with."
   (funcall function (iod--get-current-line) values))
 
 ;;;###autoload
-(defun iod/ends-on (line compare)
-  "Check if the line ends on one of the following strings"
+(defun iod/ends-on (line values)
+  "Check if LINE ends on one of the following strings.
+Argument VALUES Values to compare with."
   (remove-if-not (lambda (x)
-                   (string-match (concat (escape-regexp x) "\s*$") line)) compare))
+                   (string-match (concat (escape-regexp x) "\s*$") line)) values))
 
 ;;;###autoload
-(defun iod/starts-with (line compare)
-  "Check if the line starts with one of the following strings"
+(defun iod/starts-with (line values)
+  "Check if LINE start with one of the following strings.
+Argument VALUES Values to compare with."
   (remove-if-not (lambda (x)
-                   (string-match (concat "^\s*" (escape-regexp x) ) line)) compare))
+                   (string-match (concat "^\s*" (escape-regexp x) ) line)) values))
 
 ;;;###autoload
-(defun iod/contains (line compare)
-  "Check if the line contains any of the following strings (regexp)"
-  (remove-if-not (lambda (x) (string-match x line)) compare))
+(defun iod/contains (line values)
+  "Check if LINE has any of the following strings (regexp).
+Argument VALUES Values to compare with."
+  (remove-if-not (lambda (x) (string-match x line)) values))
 
-(defvar indent-of-doom-mode-map (make-keymap) "indent-of-doom-mode keymap.")
+(defvar indent-of-doom-mode-map (make-keymap) "Indent-of-doom-mode keymap.")
 
 (define-minor-mode indent-of-doom-mode
   "One indentation mode to rule them all."

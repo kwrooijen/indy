@@ -73,7 +73,9 @@
 This will indent the current line according to your doom rules."
   (interactive)
   (let ((rule (iod--get-rule)))
-    (if (and (not (region-active-p)) rule (eval rule)) (iod--fallback))))
+    (if (and (not (region-active-p)) rule)
+        (eval rule)
+      (iod--fallback))))
 
 ;;;###autoload
 (defun iod--fallback ()

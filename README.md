@@ -1,7 +1,7 @@
-## Indent of Doom
+## Indy
 
 ## What is this?
-Indent of doom is a library which allows you to adjust your major mode's
+Indy is a library which allows you to adjust your major mode's
 indentation rules. This library provides a small EDSL to customize your rules.
 
 Why would you want this?
@@ -18,16 +18,16 @@ usage section.
 ### DSL Functions
 
 #### Targets
-* iod/prev    `Previous line`
-* iod/current `Current line`
-* iod/next    `Next line`
+* indy--prev    `Previous line`
+* indy--current `Current line`
+* indy--next    `Next line`
 
 #### Target functions
-* iod/ends-on `Takes 1 or more strings. Returns true of the target line ends with one of the arguments`
-* iod/starts-with `Takes 1 or more strings. Returns true of the target line starts with one of the arguments`
-* iod/contains ``
-* iod/indent `Takes optionally 1 integer argument. Get the indent level of the target line in space + (argument * tab-width)`
-* iod/indent-char `Takes no arguments. Get the first character of the target line.`
+* indy--ends-on `Takes 1 or more strings. Returns true of the target line ends with one of the arguments`
+* indy--starts-with `Takes 1 or more strings. Returns true of the target line starts with one of the arguments`
+* indy--contains ``
+* indy--indent `Takes optionally 1 integer argument. Get the indent level of the target line in space + (argument * tab-width)`
+* indy--indent-char `Takes no arguments. Get the first character of the target line.`
 
 ### Using the DSL
 Let's say as an example that we are writing a list in Erlang code:
@@ -43,20 +43,20 @@ MyLongVariable = [
 ```
 
 This is how Erlang mode would normally indent this list. However I don't find this practical.
-Using indent-of-doom we can /monkey patch/ this.
+Using indy we can /monkey patch/ this.
 Inside your emacs config file add this:
 ```
-(setq iod--rules '(
+(setq indy--rules '(
    (erlang-mode . (
-       ((iod/current 'iod/starts-with "]") (iod/prev-tab -1))
-       ((iod/prev    'iod/ends-on "[")     (iod/prev-tab 1))
-       ((iod/prev    'iod/ends-on ",")     (iod/prev-tab))
+       ((indy--current 'indy--starts-with "]") (indy--prev-tab -1))
+       ((indy--prev    'indy--ends-on "[")     (indy--prev-tab 1))
+       ((indy--prev    'indy--ends-on ",")     (indy--prev-tab))
    ))
 ))
 ```
 
 - **line** 1
-    - Set the iod--rules variable
+    - Set the indy--rules variable
 - **line** 2
     - Add rules for erlang-mode
 - **line** 3
@@ -72,7 +72,7 @@ previous line __PLUS__ 1 tab-width.
 the current line should have the same indentation as the
 previous line.
 
-Now if we enable indent-of-doom-mode inside our Erlang file it will now indent as follows:
+Now if we enable indy-mode inside our Erlang file it will now indent as follows:
 
 ```
 MyLongVariable = [
@@ -94,15 +94,15 @@ AnonFunctionOfDoomAndDestruction = fun(X) ->
 Adding these rules:
 
 ```
-(setq iod--rules '(
+(setq indy--rules '(
     (erlang-mode . (
-        ((and (iod/current 'iod/starts-with "end")
-         (iod/prev 'iod/ends-on ") ->"))      (iod/prev-tab))
-        ((iod/current 'iod/starts-with "end") (iod/prev-tab -1))
-        ((iod/prev 'iod/ends-on ") ->")       (iod/prev-tab 1))
-        ((iod/current 'iod/starts-with "]")   (iod/prev-tab -1))
-        ((iod/prev 'iod/ends-on "[")          (iod/prev-tab 1))
-        ((iod/prev 'iod/ends-on ",")          (iod/prev-tab))
+        ((and (indy--current 'indy--starts-with "end")
+         (indy--prev 'indy--ends-on ") ->"))      (indy--prev-tab))
+        ((indy--current 'indy--starts-with "end") (indy--prev-tab -1))
+        ((indy--prev 'indy--ends-on ") ->")       (indy--prev-tab 1))
+        ((indy--current 'indy--starts-with "]")   (indy--prev-tab -1))
+        ((indy--prev 'indy--ends-on "[")          (indy--prev-tab 1))
+        ((indy--prev 'indy--ends-on ",")          (indy--prev-tab))
    ))
 ))
 ```
@@ -117,17 +117,17 @@ end.
 The first case however, is very common among many languages, not just Erlang. Let's make it work for all languages instead.
 
 ```
-(setq iod--rules '(
+(setq indy--rules '(
     (all . (
-        ((iod/current 'iod/starts-with "]")   (iod/prev-tab -1))
-        ((iod/prev 'iod/ends-on "[")          (iod/prev-tab 1))
-        ((iod/prev 'iod/ends-on ",")          (iod/prev-tab))
+        ((indy--current 'indy--starts-with "]")   (indy--prev-tab -1))
+        ((indy--prev 'indy--ends-on "[")          (indy--prev-tab 1))
+        ((indy--prev 'indy--ends-on ",")          (indy--prev-tab))
    ))
    (erlang-mode . (
-        ((and (iod/current 'iod/starts-with "end")
-         (iod/prev 'iod/ends-on ") ->"))      (iod/prev-tab))
-        ((iod/current 'iod/starts-with "end") (iod/prev-tab -1))
-        ((iod/prev 'iod/ends-on ") ->")       (iod/prev-tab 1))
+        ((and (indy--current 'indy--starts-with "end")
+         (indy--prev 'indy--ends-on ") ->"))      (indy--prev-tab))
+        ((indy--current 'indy--starts-with "end") (indy--prev-tab -1))
+        ((indy--prev 'indy--ends-on ") ->")       (indy--prev-tab 1))
    ))
 ))
 ```
@@ -136,35 +136,35 @@ Now the fun rule is only applied to Erlang mode, and the list rules are applied 
 Some lists however are written with curly braces instead of square brackets, let's fix that.
 
 ```
-(setq iod--rules '(
+(setq indy--rules '(
     (all . (
-        ((iod/current 'iod/starts-with "]" "}") (iod/prev-tab -1))
-        ((iod/prev 'iod/ends-on "[" "[")        (iod/prev-tab 1))
-        ((iod/prev 'iod/ends-on ",")            (iod/prev-tab))
+        ((indy--current 'indy--starts-with "]" "}") (indy--prev-tab -1))
+        ((indy--prev 'indy--ends-on "[" "[")        (indy--prev-tab 1))
+        ((indy--prev 'indy--ends-on ",")            (indy--prev-tab))
    ))
    (erlang-mode . (
-        ((and (iod/current 'iod/starts-with "end")
-         (iod/prev 'iod/ends-on ") ->"))      (iod/prev-tab))
-        ((iod/current 'iod/starts-with "end") (iod/prev-tab -1))
-        ((iod/prev 'iod/ends-on ") ->")       (iod/prev-tab 1))
+        ((and (indy--current 'indy--starts-with "end")
+         (indy--prev 'indy--ends-on ") ->"))      (indy--prev-tab))
+        ((indy--current 'indy--starts-with "end") (indy--prev-tab -1))
+        ((indy--prev 'indy--ends-on ") ->")       (indy--prev-tab 1))
    ))
 ))
 ```
 EDSL:
 ** Targets
-* iod/prev
-* iod/next
-* iod/current
+* indy--prev
+* indy--next
+* indy--current
 
 ** Target addon
-* iod/starts-with
-* iod/ends-on
-* iod/contains
+* indy--starts-with
+* indy--ends-on
+* indy--contains
 
 ** Indentors
-* iod/next-tab
-* iod/current-tab
-* iod/prev-char
-* iod/next-char
-* iod/current-char
-* iod/ends-on
+* indy--next-tab
+* indy--current-tab
+* indy--prev-char
+* indy--next-char
+* indy--current-char
+* indy--ends-on

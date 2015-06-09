@@ -184,6 +184,7 @@ If 'indy--use-tab-cycle' is nil then use 'indent-for-tab-command.'"
 Argument REG regular expression to escape."
   (replace-regexp-in-string "\\[" "\\\\[" reg))
 
+;;;###autoload
 (defun indy--fix-num (num)
   "Make sure NUM is a valid number for calculating indentation."
   (cond

@@ -33,10 +33,10 @@ Then require the package to use indy-mode
 * indy--next    `Next line`
 
 #### Target functions
-* indy--ends-on `Takes 1 or more strings. Returns true of the target line ends with one of the arguments`
-* indy--starts-with `Takes 1 or more strings. Returns true of the target line starts with one of the arguments`
-* indy--contains ``
-* indy--indent `Takes optionally 1 integer argument. Get the indent level of the target line in space + (argument * tab-width)`
+* indy--ends-on `Takes 1 or more strings. Returns true if the target line ends with one of the arguments`
+* indy--starts-with `Takes 1 or more strings. Returns true if the target line starts with one of the arguments`
+* indy--contains `Takes 1 or more strings (regular expression). Returns true if the target line contains this regular expression.`
+* indy--indent `Takes optionally 1 integer argument. Get the indent level if the target line in space + (argument * tab-width)`
 * indy--indent-char `Takes no arguments. Get the first character of the target line.`
 
 ### Using the DSL

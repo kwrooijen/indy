@@ -155,11 +155,10 @@ If 'indy-use-tab-cycle' is nil then use 'indent-for-tab-command.'"
 
 (defun indy--rules ()
   "Check if the current line is empty."
-  ;; i-have-no-idea-what-im-doing.jpg
   "Get the indent rules of the current major mode as well as the default 'all' rules"
-  (let ((result (cdr (assoc (with-current-buffer (buffer-name) major-mode) indy-rules)))
+  (let ((mode-rules (cdr (assoc major-mode indy-rules)))
         (all (cdr (assoc 'all indy-rules))))
-    (append (if result result '()) all)))
+    (append (if mode-rules mode-rules '()) all)))
 
 (defun indy--get-rule ()
   "Get the defined rules of the current major mode and the 'all' rules."

@@ -13,6 +13,16 @@ your indentation manually whenever working on your team's project to
 stay consistent. A good example is Erlang mode which is explained in the
 usage section.
 
+## Installation
+
+This package can be installed through [melpa](http://melpa.milkbox.net/):
+
+    M-x package-install transpose-mark
+
+Then require the package to use indy-mode
+
+    (require 'indy)
+
 ## Usage
 
 ### DSL Functions

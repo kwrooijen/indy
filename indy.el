@@ -45,27 +45,27 @@
   :prefix "indy-"
   :group 'indent)
 
-(defcustom indy--use-tab-cycle t
+(defcustom indy-use-tab-cycle t
   "Use tab to cycle through 3 indentations depending on previous line."
   :type 'boolean
   :group 'indy)
 
-(defcustom indy--skip-empty-lines nil
+(defcustom indy-skip-empty-lines nil
   "If you're comparing to 'previous line' it must contain characters."
   :type 'boolean
   :group 'indy)
 
-(defcustom indy--cycle-zero nil
+(defcustom indy-cycle-zero nil
   "When cycling through the 3 indentation you also cycle to the beginning of the line."
   :type 'boolean
   :group 'indy)
 
-(defcustom indy--indent-key "TAB"
+(defcustom indy-indent-key "TAB"
   "The key to run indy."
   :type '(string)
   :group 'indy)
 
-(defvar indy--rules '())
+(defvar indy-rules '())
 
 ;;;###autoload
 (defun indy ()
@@ -77,7 +77,6 @@ This will indent the current line according to your indy rules."
         (eval rule)
       (indy--fallback))))
 
-;;;###autoload
 (defun indy--fallback ()
   "If no rules are applicable then use the fallback function.
 If 'indy--use-tab-cycle' is non nil use the 3 indentation cycling.
@@ -86,7 +85,6 @@ If 'indy--use-tab-cycle' is nil then use 'indent-for-tab-command.'"
       (indy--cycle)
     (indent-for-tab-command)))
 
-;;;###autoload
 (defun indy--indent (num)
   "Indent the current line by the amount of provided in NUM."
   (unless (equal (indy--current-indent) num)
@@ -95,7 +93,6 @@ If 'indy--use-tab-cycle' is nil then use 'indent-for-tab-command.'"
       (indent-line-to num)
       (move-to-column (indy--fix-num ccn)))))
 
-;;;###autoload
 (defun indy--cycle ()
   "Cycle through 3 indentations depending on the previous line."
   (let* ((c (indy--current-indent))
@@ -108,7 +105,6 @@ If 'indy--use-tab-cycle' is nil then use 'indent-for-tab-command.'"
              (t  (if indy--cycle-zero 0 (- p tab-width))))))
     (indy--indent w)))
 
-;;;###autoload
 (defun indy--prev-indent ()
   "Get the amount of indentation spaces if the previous line."
   (save-excursion
@@ -118,7 +114,6 @@ If 'indy--use-tab-cycle' is nil then use 'indent-for-tab-command.'"
     (back-to-indentation)
     (current-column)))
 
-;;;###autoload
 (defun indy--next-indent ()
   "Get the amount of indentation spaces if the next line."
   (save-excursion
@@ -128,14 +123,12 @@ If 'indy--use-tab-cycle' is nil then use 'indent-for-tab-command.'"
     (back-to-indentation)
     (current-column)))
 
-;;;###autoload
 (defun indy--current-indent ()
   "Get the amount of indentation spaces if the current line."
   (save-excursion
     (back-to-indentation)
     (current-column)))
 
-;;;###autoload
 (defun indy--get-next-line ()
   "Get the next line as a string."
   (save-excursion
@@ -144,7 +137,6 @@ If 'indy--use-tab-cycle' is nil then use 'indent-for-tab-command.'"
       (next-line 1))
     (indy--get-current-line)))
 
-;;;###autoload
 (defun indy--get-prev-line ()
   "Get the previous line as a string."
   (save-excursion
@@ -153,38 +145,32 @@ If 'indy--use-tab-cycle' is nil then use 'indent-for-tab-command.'"
       (previous-line 1))
     (indy--get-current-line)))
 
-;;;###autoload
 (defun indy--get-current-line ()
   "Get the current line as a string."
   (buffer-substring-no-properties (point-at-bol) (point-at-eol)))
 
-;;;###autoload
 (defun indy--line-empty? ()
   "Check if the current line is empty."
   (string-match "^\s*$" (indy--get-current-line)))
 
-;;;###autoload
 (defun indy--rules ()
   "Check if the current line is empty."
   ;; i-have-no-idea-what-im-doing.jpg
   "Get the indent rules of the current major mode as well as the default 'all' rules"
-  (let ((result (cdr (assoc (with-current-buffer (buffer-name) major-mode) indy--rules)))
-        (all (cdr (assoc 'all indy--rules))))
+  (let ((result (cdr (assoc (with-current-buffer (buffer-name) major-mode) indy-rules)))
+        (all (cdr (assoc 'all indy-rules))))
     (append (if result result '()) all)))
 
-;;;###autoload
 (defun indy--get-rule ()
   "Get the defined rules of the current major mode and the 'all' rules."
   (let* ((filter-list (remove-if-not (lambda(x) (eval (car x))) (indy--rules))))
     (car (last (car filter-list)))))
 
-;;;###autoload
 (defun indy--escape-regexp (reg)
   "Escape regexp.
 Argument REG regular expression to escape."
   (replace-regexp-in-string "\\[" "\\\\[" reg))
 
-;;;###autoload
 (defun indy--fix-num (num)
   "Make sure NUM is a valid number for calculating indentation."
   (cond
@@ -194,70 +180,58 @@ Argument REG regular expression to escape."
 
 ;; EDSL
 
-;;;###autoload
 (defun indy--prev-tab (&optional num)
   "Indent the current line by previous line indentation + tab-with * NUM."
   (indy--indent (+ (indy--prev-indent) (* (indy--fix-num num) tab-width))))
 
-;;;###autoload
 (defun indy--next-tab (&optional num)
   "Indent the current line by next line indentation + tab-with * NUM."
   (indy--indent (+ (indy--next-indent) (* (indy--fix-num num) tab-width))))
 
-;;;###autoload
 (defun indy--current-tab (&optional num)
   "Indent the current by NUM."
   (indy--indent (indy--fix-num num)))
 
-;;;###autoload
 (defun indy--prev-char (&optional num)
   "Indent the current line by previous line indentation + NUM."
   (indy--indent (+ (indy--prev-indent) (indy--fix-num num))))
 
-;;;###autoload
 (defun indy--next-char (&optional num)
   "Indent the current line by next line indentation + NUM."
   (indy--indent (+ (indy--next-indent) (indy--fix-num num))))
 
-;;;###autoload
 (defun indy--current-char (&optional num)
   "Indent the current line by NUM."
   (indy--indent (indy--fix-num num)))
 
-;;;###autoload
 (defun indy--prev (function &rest values)
   "Apply a line check on the previous line using the EDSL FUNCTIONs.
 Optional argument VALUES Values to compare with."
   "Previous line as a target"
   (funcall function (indy--get-prev-line) values))
 
-;;;###autoload
 (defun indy--next (function &rest values)
   "Apply a line check on the next line using the EDSL FUNCTIONs.
 Optional argument VALUES Values to compare with."
   (funcall function (indy--get-next-line) values))
 
-;;;###autoload
 (defun indy--current (function &rest values)
   "Apply a line check on the current line using the EDSL FUNCTIONs.
 Optional argument VALUES Values to compare with."
   (funcall function (indy--get-current-line) values))
 
-;;;###autoload
 (defun indy--ends-on (line values)
   "Check if LINE ends on one of the following strings.
 Argument VALUES Values to compare with."
   (remove-if-not (lambda (x)
                    (string-match (concat (indy--escape-regexp x) "\s*$") line)) values))
 
-;;;###autoload
 (defun indy--starts-with (line values)
   "Check if LINE start with one of the following strings.
 Argument VALUES Values to compare with."
   (remove-if-not (lambda (x)
                    (string-match (concat "^\s*" (indy--escape-regexp x) ) line)) values))
 
-;;;###autoload
 (defun indy--contains (line values)
   "Check if LINE has any of the following strings (regexp).
 Argument VALUES Values to compare with."
@@ -267,7 +241,7 @@ Argument VALUES Values to compare with."
 
 (define-minor-mode indy-mode
   "One indentation mode to rule them all."
-  nil " IoD" 'indy-mode-map)
+  nil " Indy" 'indy-mode-map)
 
 (define-key indy-mode-map (kbd indy--indent-key) 'indy)
 

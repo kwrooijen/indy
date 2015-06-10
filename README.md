@@ -46,7 +46,7 @@ This is how Erlang mode would normally indent this list. However I don't find th
 Using indy we can /monkey patch/ this.
 Inside your emacs config file add this:
 ```
-(setq indy--rules '(
+(setq indy-rules '(
    (erlang-mode . (
        ((indy--current 'indy--starts-with "]") (indy--prev-tab -1))
        ((indy--prev    'indy--ends-on "[")     (indy--prev-tab 1))
@@ -94,7 +94,7 @@ AnonFunctionOfDoomAndDestruction = fun(X) ->
 Adding these rules:
 
 ```
-(setq indy--rules '(
+(setq indy-rules '(
     (erlang-mode . (
         ((and (indy--current 'indy--starts-with "end")
          (indy--prev 'indy--ends-on ") ->"))      (indy--prev-tab))
@@ -117,7 +117,7 @@ end.
 The first case however, is very common among many languages, not just Erlang. Let's make it work for all languages instead.
 
 ```
-(setq indy--rules '(
+(setq indy-rules '(
     (all . (
         ((indy--current 'indy--starts-with "]")   (indy--prev-tab -1))
         ((indy--prev 'indy--ends-on "[")          (indy--prev-tab 1))
@@ -136,7 +136,7 @@ Now the fun rule is only applied to Erlang mode, and the list rules are applied 
 Some lists however are written with curly braces instead of square brackets, let's fix that.
 
 ```
-(setq indy--rules '(
+(setq indy-rules '(
     (all . (
         ((indy--current 'indy--starts-with "]" "}") (indy--prev-tab -1))
         ((indy--prev 'indy--ends-on "[" "[")        (indy--prev-tab 1))

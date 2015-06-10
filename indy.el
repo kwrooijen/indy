@@ -79,9 +79,9 @@ This will indent the current line according to your indy rules."
 
 (defun indy--fallback ()
   "If no rules are applicable then use the fallback function.
-If 'indy--use-tab-cycle' is non nil use the 3 indentation cycling.
-If 'indy--use-tab-cycle' is nil then use 'indent-for-tab-command.'"
-  (if indy--use-tab-cycle
+If 'indy-use-tab-cycle' is non nil use the 3 indentation cycling.
+If 'indy-use-tab-cycle' is nil then use 'indent-for-tab-command.'"
+  (if indy-use-tab-cycle
       (indy--cycle)
     (indent-for-tab-command)))
 
@@ -102,14 +102,14 @@ If 'indy--use-tab-cycle' is nil then use 'indent-for-tab-command.'"
              ((< c p) p)
              ((equal c p) (+ p tab-width))
              ((equal c p) (+ p tab-width))
-             (t  (if indy--cycle-zero 0 (- p tab-width))))))
+             (t  (if indy-cycle-zero 0 (- p tab-width))))))
     (indy--indent w)))
 
 (defun indy--prev-indent ()
   "Get the amount of indentation spaces if the previous line."
   (save-excursion
     (previous-line 1)
-    (while (and (indy--line-empty?) indy--skip-empty-lines)
+    (while (and (indy--line-empty?) indy-skip-empty-lines)
       (previous-line 1))
     (back-to-indentation)
     (current-column)))
@@ -118,7 +118,7 @@ If 'indy--use-tab-cycle' is nil then use 'indent-for-tab-command.'"
   "Get the amount of indentation spaces if the next line."
   (save-excursion
     (next-line 1)
-    (while (and (indy--line-empty?) indy--skip-empty-lines)
+    (while (and (indy--line-empty?) indy-skip-empty-lines)
       (next-line 1))
     (back-to-indentation)
     (current-column)))
@@ -133,7 +133,7 @@ If 'indy--use-tab-cycle' is nil then use 'indent-for-tab-command.'"
   "Get the next line as a string."
   (save-excursion
     (next-line 1)
-    (while (and (indy--line-empty?) indy--skip-empty-lines)
+    (while (and (indy--line-empty?) indy-skip-empty-lines)
       (next-line 1))
     (indy--get-current-line)))
 
@@ -141,7 +141,7 @@ If 'indy--use-tab-cycle' is nil then use 'indent-for-tab-command.'"
   "Get the previous line as a string."
   (save-excursion
     (previous-line 1)
-    (while (and (indy--line-empty?) indy--skip-empty-lines)
+    (while (and (indy--line-empty?) indy-skip-empty-lines)
       (previous-line 1))
     (indy--get-current-line)))
 
@@ -243,7 +243,7 @@ Argument VALUES Values to compare with."
   "One indentation mode to rule them all."
   nil " Indy" 'indy-mode-map)
 
-(define-key indy-mode-map (kbd indy--indent-key) 'indy)
+(define-key indy-mode-map (kbd indy-indent-key) 'indy)
 
 (provide 'indy)
 ;;; indy.el ends here

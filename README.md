@@ -17,7 +17,7 @@ usage section.
 
 This package can be installed through [melpa](http://melpa.milkbox.net/):
 
-    M-x package-install transpose-mark
+    M-x package-install indy
 
 Then require the package to use indy-mode
 
